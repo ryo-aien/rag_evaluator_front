@@ -1,0 +1,142 @@
+[
+    {
+        "query": "ログインできない",
+        "relevant_doc_ids": ["faq001", "faq003", "faq004", "faq005"]
+    },
+    {
+        "query": "パスワードを忘れた",
+        "relevant_doc_ids": ["faq001", "faq002"]
+    },
+    {
+        "query": "パスワードリセットメールが来ない",
+        "relevant_doc_ids": ["faq002"]
+    },
+    {
+        "query": "アカウントがロックされた",
+        "relevant_doc_ids": ["faq004"]
+    },
+    {
+        "query": "二段階認証でログインできない",
+        "relevant_doc_ids": ["faq005", "faq009", "faq010"]
+    },
+    {
+        "query": "パスワードを変更したい",
+        "relevant_doc_ids": ["faq006", "faq007", "faq008"]
+    },
+    {
+        "query": "安全なパスワードの作り方",
+        "relevant_doc_ids": ["faq007"]
+    },
+    {
+        "query": "二段階認証を設定したい",
+        "relevant_doc_ids": ["faq009", "faq010"]
+    },
+    {
+        "query": "二段階認証のバックアップコード",
+        "relevant_doc_ids": ["faq010"]
+    },
+    {
+        "query": "アカウントを削除したい",
+        "relevant_doc_ids": ["faq011", "faq012", "faq013"]
+    },
+    {
+        "query": "アカウント削除後のデータはどうなる",
+        "relevant_doc_ids": ["faq012"]
+    },
+    {
+        "query": "アカウントを一時的に停止したい",
+        "relevant_doc_ids": ["faq013"]
+    },
+    {
+        "query": "メールアドレスを変更する方法",
+        "relevant_doc_ids": ["faq014"]
+    },
+    {
+        "query": "プロフィールを編集したい",
+        "relevant_doc_ids": ["faq015"]
+    },
+    {
+        "query": "メール通知を止めたい",
+        "relevant_doc_ids": ["faq016", "faq018"]
+    },
+    {
+        "query": "プッシュ通知の設定",
+        "relevant_doc_ids": ["faq017"]
+    },
+    {
+        "query": "通知を受け取る時間を設定したい",
+        "relevant_doc_ids": ["faq018"]
+    },
+    {
+        "query": "表示言語を変更したい",
+        "relevant_doc_ids": ["faq019"]
+    },
+    {
+        "query": "タイムゾーンの設定方法",
+        "relevant_doc_ids": ["faq020"]
+    },
+    {
+        "query": "プライバシー設定について知りたい",
+        "relevant_doc_ids": ["faq021", "faq022"]
+    },
+    {
+        "query": "個人情報の取り扱い",
+        "relevant_doc_ids": ["faq022"]
+    },
+    {
+        "query": "自分のデータをダウンロードしたい",
+        "relevant_doc_ids": ["faq023"]
+    },
+    {
+        "query": "ログイン履歴を確認する",
+        "relevant_doc_ids": ["faq024", "faq025"]
+    },
+    {
+        "query": "不審なアクセスがあった",
+        "relevant_doc_ids": ["faq024", "faq004"]
+    },
+    {
+        "query": "他のデバイスからログアウトしたい",
+        "relevant_doc_ids": ["faq025"]
+    },
+    {
+        "query": "連携アプリを解除したい",
+        "relevant_doc_ids": ["faq026"]
+    },
+    {
+        "query": "サポートに問い合わせたい",
+        "relevant_doc_ids": ["faq027"]
+    },
+    {
+        "query": "エラーが発生した",
+        "relevant_doc_ids": ["faq028", "faq029"]
+    },
+    {
+        "query": "アプリが動かない",
+        "relevant_doc_ids": ["faq029"]
+    },
+    {
+        "query": "アカウントを復旧したい",
+        "relevant_doc_ids": ["faq030"]
+    },
+    {
+        "query": "セキュリティを強化したい",
+        "relevant_doc_ids": ["faq007", "faq008", "faq009", "faq021"]
+    },
+    {
+        "query": "パスワードとセキュリティの設定",
+        "relevant_doc_ids": ["faq006", "faq007", "faq008", "faq009", "faq010"]
+    },
+    {
+        "query": "ログインとアカウントの問題",
+        "relevant_doc_ids": ["faq001", "faq003", "faq004", "faq005", "faq030"]
+    },
+    {
+        "query": "通知の管理方法",
+        "relevant_doc_ids": ["faq016", "faq017", "faq018"]
+    },
+    {
+        "query": "アカウント設定の変更",
+        "relevant_doc_ids": ["faq014", "faq015", "faq019", "faq020"]
+    }
+]

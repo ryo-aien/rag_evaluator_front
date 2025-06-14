@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Document Processor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            color: #fff;
+            overflow-x: hidden;
+            padding-top: 40px;
+            position: relative;
+        }
+
+        /* Subtle gradient overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 50% 100%, rgba(120, 119, 198, 0.2) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 90%;
+            margin: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 10px;
+            letter-spacing: -0.02em;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        /* Tab Navigation */
+        .tab-navigation {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 24px;
+            background: transparent;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0.7;
+        }
+
+        .tab-button:hover {
+            opacity: 0.9;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-button.active {
+            background: #7877c6;
+            opacity: 1;
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(120, 119, 198, 0.4);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeInUp 0.5s ease-out;
+            min-height: 500px; /* 最小高さを設定して位置を固定 */
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 30px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #fff;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            border: 2px dashed rgba(255, 255, 255, 0.4);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 100px;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .file-input-label:hover {
+            border-color: #7877c6;
+            background: rgba(120, 119, 198, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .file-input-label.drag-over {
+            border-color: #7877c6;
+            background: rgba(120, 119, 198, 0.1);
+        }
+
+        .file-icon {
+            font-size: 2rem;
+            opacity: 0.7;
+        }
+
+        .select-wrapper {
+            position: relative;
+        }
+
+        .select {
+            width: 100%;
+            padding: 16px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            appearance: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .select:focus {
+            border-color: #7877c6;
+            box-shadow: 0 0 0 3px rgba(120, 119, 198, 0.2);
+        }
+
+        .select option {
+            background: #2d3748;
+            color: #fff;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 18px 24px;
+            background: #7877c6;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            background: #9190d0;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(120, 119, 198, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 20px;
+            animation: fadeInUp 0.5s ease-out;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 10px;
+        }
+
+        .status-success {
+            color: #7877c6;
+        }
+
+        .status-error {
+            color: #ff77a8;
+        }
+
+        .result-content {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .result-content.markdown {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* Markdown styles */
+        .result-content h2 {
+            color: #7877c6;
+            margin-top: 0;
+            margin-bottom: 16px;
+            font-size: 1.5rem;
+        }
+
+        .result-content h3 {
+            color: #9190d0;
+            margin-bottom: 12px;
+            font-size: 1.2rem;
+        }
+
+        .result-content h4 {
+            color: #fff;
+            margin-top: 16px;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        .result-content p {
+            margin-bottom: 12px;
+        }
+
+        .result-content ul {
+            margin-left: 20px;
+            margin-bottom: 12px;
+        }
+
+        .result-content li {
+            margin-bottom: 8px;
+        }
+
+        .result-content strong {
+            color: #7877c6;
+            font-weight: 600;
+        }
+
+        .result-content code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .result-content pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 12px;
+        }
+
+        .result-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        /* Evaluation-specific markdown styles */
+        .result-content.markdown .query-block {
+            background: rgba(120, 119, 198, 0.1);
+            padding: 12px;
+            margin: 16px 0;
+            border-radius: 8px;
+        }
+
+        .result-content.markdown .query-label {
+            color: #7877c6;
+            font-size: 1.1rem;
+        }
+
+        .result-content.markdown .numbered-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 8px 16px;
+            margin: 4px 0;
+            border-radius: 6px;
+            border-left: 2px solid rgba(255, 255, 255, 0.2);
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+        }
+
+        .result-content.markdown .result-detail {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: #e0e0e0;
+        }
+
+        .result-content.markdown ul {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 12px 0;
+        }
+
+        .result-content.markdown li {
+            margin-bottom: 8px;
+            padding-left: 8px;
+        }
+
+        .result-content.markdown li strong {
+            color: #9190d0;
+            font-weight: 600;
+        }
+
+        .result-content.markdown br {
+            line-height: 0.5;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(120, 119, 198, 0.1);
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #7877c6;
+            width: 0%;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(120, 119, 198, 0.5);
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .card {
+                padding: 25px;
+            }
+            
+            .container {
+                width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>RAG Document Processor</h1>
+            <p>ドキュメント評価システム</p>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="process">ドキュメント処理</button>
+            <button class="tab-button" data-tab="evaluate">システム評価</button>
+        </div>
+
+        <!-- Process Tab -->
+        <div class="tab-content active" id="process-tab">
+            <div class="card">
+                <div class="form-group">
+                    <label>サンプルJSONファイルを作成</label>
+                    <button type="button" class="btn" id="createSampleBtn" style="margin-bottom: 20px;">
+                        サンプルJSONファイルをダウンロード
+                    </button>
+                </div>
+                
+                <form id="documentForm">
+                    <div class="form-group">
+                        <label for="fileInput">ドキュメントファイル</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="fileInput" class="file-input" accept=".json">
+                            <label for="fileInput" class="file-input-label">
+                                <div class="file-icon">📄</div>
+                                <div>JSONファイルを選択またはドラッグ&ドロップ</div>
+                                <div style="font-size: 0.9rem; opacity: 0.7;">JSON形式のみをサポート</div>
+                            </label>
+                        </div>
+                        <div id="fileInfo" class="file-info" style="display: none;">
+                            <span>📎</span>
+                            <span id="fileName"></span>
+                            <span id="fileSize"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="docFormat">出力フォーマット</label>
+                        <div class="select-wrapper">
+                            <select id="docFormat" class="select">
+                                <option value="JSON">JSON</option>
+                                <option value="XML" disabled>XML</option>
+                                <option value="YAML" disabled>YAML</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn" id="submitBtn">
+                        <span id="btnText">ドキュメントを処理</span>
+                    </button>
+
+                    <div id="progressBar" class="progress-bar" style="display: none;">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </form>
+            </div>
+
+            <div id="resultCard" class="result-card" style="display: none;">
+                <div class="result-header">
+                    <span id="resultIcon">✅</span>
+                    <h3 id="resultTitle">処理結果</h3>
+                </div>
+                <div class="result-content" id="resultContent"></div>
+            </div>
+        </div>
+
+        <!-- Evaluate Tab -->
+        <div class="tab-content" id="evaluate-tab">
+            <div class="card">
+                <div class="form-group">
+                    <label>評価用サンプルファイルを作成</label>
+                    <button type="button" class="btn" id="createEvalSampleBtn" style="margin-bottom: 20px;">
+                        評価用サンプルファイルをダウンロード
+                    </button>
+                </div>
+                
+                <form id="evaluateForm">
+                    <div class="form-group">
+                        <label for="evalFileInput">評価ファイル</label>
+                        <div class="file-input-wrapper">
+                            <input type="file" id="evalFileInput" class="file-input" accept=".json,.pdf">
+                            <label for="evalFileInput" class="file-input-label" id="evalFileInputLabel">
+                                <div class="file-icon">📄</div>
+                                <div>評価ファイルを選択またはドラッグ&ドロップ</div>
+                                <div style="font-size: 0.9rem; opacity: 0.7;">JSON形式をサポート</div>
+                            </label>
+                        </div>
+                        <div id="evalFileInfo" class="file-info" style="display: none;">
+                            <span>📎</span>
+                            <span id="evalFileName"></span>
+                            <span id="evalFileSize"></span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn" id="evaluateBtn">
+                        <span id="evalBtnText">システムを評価</span>
+                    </button>
+
+                    <div id="evalProgressBar" class="progress-bar" style="display: none;">
+                        <div class="progress-fill" id="evalProgressFill"></div>
+                    </div>
+                </form>
+            </div>
+
+            <div id="evalResultCard" class="result-card" style="display: none;">
+                <div class="result-header">
+                    <span id="evalResultIcon">📊</span>
+                    <h3 id="evalResultTitle">評価結果</h3>
+                </div>
+                <div class="result-content" id="evalResultContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Hugging Face APIクライアント設定
+        const HF_SPACE_URL = "doropiza/rag_evaluator";
+        
+        // DOM要素の取得
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        // Process tab elements
+        const form = document.getElementById('documentForm');
+        const fileInput = document.getElementById('fileInput');
+        const fileInputLabel = document.querySelector('.file-input-label');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const submitBtn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const resultCard = document.getElementById('resultCard');
+        const resultIcon = document.getElementById('resultIcon');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultContent = document.getElementById('resultContent');
+        const docFormat = document.getElementById('docFormat');
+        const createSampleBtn = document.getElementById('createSampleBtn');
+        
+        // Evaluate tab elements
+        const evaluateForm = document.getElementById('evaluateForm');
+        const evalFileInput = document.getElementById('evalFileInput');
+        const evalFileInputLabel = document.getElementById('evalFileInputLabel');
+        const evalFileInfo = document.getElementById('evalFileInfo');
+        const evalFileName = document.getElementById('evalFileName');
+        const evalFileSize = document.getElementById('evalFileSize');
+        const evaluateBtn = document.getElementById('evaluateBtn');
+        const evalBtnText = document.getElementById('evalBtnText');
+        const evalProgressBar = document.getElementById('evalProgressBar');
+        const evalProgressFill = document.getElementById('evalProgressFill');
+        const evalResultCard = document.getElementById('evalResultCard');
+        const evalResultIcon = document.getElementById('evalResultIcon');
+        const evalResultTitle = document.getElementById('evalResultTitle');
+        const evalResultContent = document.getElementById('evalResultContent');
+        const createEvalSampleBtn = document.getElementById('createEvalSampleBtn');
+
+        // Tab switching
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabName = button.dataset.tab;
+                
+                // Update active states
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                // Show/hide tab contents
+                tabContents.forEach(content => {
+                    if (content.id === `${tabName}-tab`) {
+                        content.classList.add('active');
+                    } else {
+                        content.classList.remove('active');
+                    }
+                });
+                
+                // Prevent scroll position change
+                window.scrollTo(0, window.scrollY);
+            });
+        });
+
+        // サンプルJSONファイル作成
+        createSampleBtn.addEventListener('click', createSampleJSON);
+        createEvalSampleBtn.addEventListener('click', createEvalSampleJSON);
+
+        // Process tab event listeners
+        fileInput.addEventListener('change', handleFileSelect);
+        fileInputLabel.addEventListener('dragover', handleDragOver);
+        fileInputLabel.addEventListener('dragleave', handleDragLeave);
+        fileInputLabel.addEventListener('drop', handleDrop);
+        form.addEventListener('submit', handleSubmit);
+
+        // Evaluate tab event listeners
+        evalFileInput.addEventListener('change', handleEvalFileSelect);
+        evalFileInputLabel.addEventListener('dragover', handleEvalDragOver);
+        evalFileInputLabel.addEventListener('dragleave', handleEvalDragLeave);
+        evalFileInputLabel.addEventListener('drop', handleEvalDrop);
+        evaluateForm.addEventListener('submit', handleEvaluateSubmit);
+
+        function createSampleJSON() {
+            const sampleData = {
+                "documents": [
+                    {
+                        "id": "doc_001",
+                        "title": "RAGシステムについて",
+                        "content": "RAG（Retrieval-Augmented Generation）は、検索拡張生成と呼ばれる技術で、大規模言語モデルに外部の知識ベースを組み合わせることで、より正確で最新の情報を提供する手法です。",
+                        "metadata": {
+                            "category": "AI技術",
+                            "date": "2024-01-15",
+                            "author": "AI研究チーム"
+                        }
+                    },
+                    {
+                        "id": "doc_002", 
+                        "title": "機械学習の基礎",
+                        "content": "機械学習は、データからパターンを学習してタスクを実行するアルゴリズムの集合です。教師あり学習、教師なし学習、強化学習の3つの主要な分野があります。",
+                        "metadata": {
+                            "category": "機械学習",
+                            "date": "2024-01-20",
+                            "author": "データサイエンスチーム"
+                        }
+                    }
+                ],
+                "metadata": {
+                    "version": "1.0",
+                    "created_at": new Date().toISOString(),
+                    "total_documents": 2
+                }
+            };
+
+            downloadJSON(sampleData, 'sample_documents.json');
+            showResult('success', 'ファイル作成完了', 'サンプルJSONファイルをダウンロードしました。');
+        }
+
+        function createEvalSampleJSON() {
+            const sampleData = {
+                "evaluation_criteria": {
+                    "relevance": {
+                        "weight": 0.3,
+                        "description": "回答の関連性"
+                    },
+                    "accuracy": {
+                        "weight": 0.3,
+                        "description": "情報の正確性"
+                    },
+                    "completeness": {
+                        "weight": 0.2,
+                        "description": "回答の完全性"
+                    },
+                    "clarity": {
+                        "weight": 0.2,
+                        "description": "回答の明確性"
+                    }
+                },
+                "test_cases": [
+                    {
+                        "question": "RAGシステムとは何ですか？",
+                        "expected_answer": "検索拡張生成技術",
+                        "context": "RAGに関する文書"
+                    },
+                    {
+                        "question": "機械学習の主要な分野は？",
+                        "expected_answer": "教師あり学習、教師なし学習、強化学習",
+                        "context": "機械学習の基礎文書"
+                    }
+                ],
+                "metadata": {
+                    "version": "1.0",
+                    "created_at": new Date().toISOString(),
+                    "evaluation_type": "system_performance"
+                }
+            };
+
+            downloadJSON(sampleData, 'evaluation_sample.json');
+            showResult('success', 'ファイル作成完了', '評価用サンプルファイルをダウンロードしました。', true);
+        }
+
+        function downloadJSON(data, filename) {
+            const jsonString = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Process tab handlers
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (!file.name.toLowerCase().endsWith('.json')) {
+                    showResult('error', 'ファイル形式エラー', 'JSONファイルのみアップロード可能です。');
+                    e.target.value = '';
+                    return;
+                }
+                displayFileInfo(file);
+            }
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            fileInputLabel.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            fileInputLabel.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            handleDragLeave(e);
+            
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                if (!file.name.toLowerCase().endsWith('.json')) {
+                    showResult('error', 'ファイル形式エラー', 'JSONファイルのみアップロード可能です。');
+                    return;
+                }
+                fileInput.files = e.dataTransfer.files;
+                displayFileInfo(file);
+            }
+        }
+
+        // Evaluate tab handlers
+        function handleEvalFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (!isValidEvalFile(file)) {
+                    showResult('error', 'ファイル形式エラー', 'JSON/PDFファイルのみアップロード可能です。', true);
+                    e.target.value = '';
+                    return;
+                }
+                displayFileInfo(file, true);
+            }
+        }
+
+        function handleEvalDragOver(e) {
+            e.preventDefault();
+            evalFileInputLabel.classList.add('drag-over');
+        }
+
+        function handleEvalDragLeave(e) {
+            e.preventDefault();
+            evalFileInputLabel.classList.remove('drag-over');
+        }
+
+        function handleEvalDrop(e) {
+            e.preventDefault();
+            handleEvalDragLeave(e);
+            
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                if (!isValidEvalFile(file)) {
+                    showResult('error', 'ファイル形式エラー', 'JSON/PDFファイルのみアップロード可能です。', true);
+                    return;
+                }
+                evalFileInput.files = e.dataTransfer.files;
+                displayFileInfo(file, true);
+            }
+        }
+
+        function isValidEvalFile(file) {
+            const name = file.name.toLowerCase();
+            return name.endsWith('.json') || name.endsWith('.pdf');
+        }
+
+        function displayFileInfo(file, isEval = false) {
+            if (isEval) {
+                evalFileName.textContent = file.name;
+                evalFileSize.textContent = formatFileSize(file.size);
+                evalFileInfo.style.display = 'flex';
+            } else {
+                fileName.textContent = file.name;
+                fileSize.textContent = formatFileSize(file.size);
+                fileInfo.style.display = 'flex';
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+            
+            const file = fileInput.files[0];
+            if (!file) {
+                showResult('error', 'エラー', 'ファイルを選択してください。');
+                return;
+            }
+
+            // JSONファイルの内容検証
+            try {
+                const fileText = await file.text();
+                JSON.parse(fileText);
+            } catch (error) {
+                showResult('error', 'ファイル形式エラー', '有効なJSONファイルではありません。JSONの構文を確認してください。');
+                return;
+            }
+
+            setLoading(true);
+            hideResult();
+            showProgress();
+
+            try {
+                updateProgress(20);
+                const { Client } = await import("https://esm.sh/@gradio/client");
+                
+                updateProgress(40);
+                const client = await Client.connect(HF_SPACE_URL);
+                
+                updateProgress(60);
+                
+                const result = await client.predict("/process_documents", {
+                    file: file,
+                    doc_format: docFormat.value,
+                });
+                console.log("*************")
+                console.log("result"+result.data)
+                updateProgress(90);
+                
+                updateProgress(100);
+                setTimeout(() => {
+                    // Extract text from response
+                    let displayContent = result.data;
+                    if (Array.isArray(result.data) && result.data.length > 0 && typeof result.data[0] === 'string') {
+                        displayContent = result.data[0].replace(/^[✅❌🎉📌📄📎💡⚠️ℹ️]+\s*/, '');
+                    } else if (typeof result.data === 'object') {
+                        displayContent = JSON.stringify(result.data, null, 2);
+                    }
+                    
+                    showResult('success', '処理完了', displayContent);
+                    setLoading(false);
+                    hideProgress();
+                }, 500);
+
+            } catch (error) {
+                console.error('Error processing document:', error);
+                showResult('error', '処理エラー', `エラーが発生しました: ${error.message}`);
+                setLoading(false);
+                hideProgress();
+            }
+        }
+
+        async function handleEvaluateSubmit(e) {
+            e.preventDefault();
+            
+            const file = evalFileInput.files[0];
+            if (!file) {
+                showResult('error', 'エラー', 'ファイルを選択してください。', true);
+                return;
+            }
+
+            setLoading(true, true);
+            hideResult(true);
+            showProgress(true);
+
+            try {
+                updateProgress(20, true);
+                const { Client } = await import("https://esm.sh/@gradio/client");
+                
+                updateProgress(40, true);
+                const client = await Client.connect(HF_SPACE_URL);
+                
+                updateProgress(60, true);
+                
+                const result = await client.predict("/evaluate_system", {
+                    eval_file: file
+                });
+                console.log("*************")
+                console.log("result"+result.data)
+                updateProgress(90, true);
+                
+                updateProgress(100, true);
+                setTimeout(() => {
+                    // Extract text from response
+                    let displayContent = result.data;
+                    if (Array.isArray(result.data) && result.data.length > 0) {
+                        displayContent = result.data[0];
+                        if (typeof displayContent === 'string') {
+                            displayContent = displayContent.replace(/^[✅❌🎉📌📄📎💡⚠️ℹ️📊]+\s*/, '');
+                        }
+                    } else if (typeof result.data === 'string') {
+                        displayContent = result.data.replace(/^[✅❌🎉📌📄📎💡⚠️ℹ️📊]+\s*/, '');
+                    } else if (typeof result.data === 'object') {
+                        displayContent = JSON.stringify(result.data, null, 2);
+                    }
+                    
+                    // Convert markdown to HTML for evaluation results
+                    const markdownHtml = convertMarkdownToHTML(displayContent);
+                    console.log('Original content:', displayContent);
+                    console.log('Converted HTML:', markdownHtml);
+                    
+                    showResult('success', '評価完了(0〜1の範囲で、1に近いほど良い)', markdownHtml, true, true);
+                    setLoading(false, true);
+                    hideProgress(true);
+                }, 500);
+
+            } catch (error) {
+                console.error('Error evaluating system:', error);
+                showResult('error', '評価エラー', `エラーが発生しました: ${error.message}`, true);
+                setLoading(false, true);
+                hideProgress(true);
+            }
+        }
+
+        function setLoading(loading, isEval = false) {
+            if (isEval) {
+                evaluateBtn.disabled = loading;
+                evalBtnText.innerHTML = loading ? '<span class="loading"></span>評価中...' : 'システムを評価';
+            } else {
+                submitBtn.disabled = loading;
+                btnText.innerHTML = loading ? '<span class="loading"></span>処理中...' : 'ドキュメントを処理';
+            }
+        }
+
+        function showProgress(isEval = false) {
+            if (isEval) {
+                evalProgressBar.style.display = 'block';
+            } else {
+                progressBar.style.display = 'block';
+            }
+        }
+
+        function hideProgress(isEval = false) {
+            if (isEval) {
+                evalProgressBar.style.display = 'none';
+                evalProgressFill.style.width = '0%';
+            } else {
+                progressBar.style.display = 'none';
+                progressFill.style.width = '0%';
+            }
+        }
+
+        function updateProgress(percent, isEval = false) {
+            if (isEval) {
+                evalProgressFill.style.width = percent + '%';
+            } else {
+                progressFill.style.width = percent + '%';
+            }
+        }
+
+        function showResult(type, title, content, isEval = false, isMarkdown = false) {
+            if (isEval) {
+                evalResultIcon.textContent = type === 'success' ? '📊' : '❌';
+                evalResultIcon.className = type === 'success' ? 'status-success' : 'status-error';
+                evalResultTitle.textContent = title;
+                
+                if (isMarkdown && content) {
+                    evalResultContent.innerHTML = content;
+                    evalResultContent.classList.add('markdown');
+                } else {
+                    evalResultContent.textContent = content || '';
+                    evalResultContent.classList.remove('markdown');
+                }
+                evalResultCard.style.display = 'block';
+                
+                // スクロールして結果を表示
+                evalResultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                resultIcon.textContent = type === 'success' ? '✅' : '❌';
+                resultIcon.className = type === 'success' ? 'status-success' : 'status-error';
+                resultTitle.textContent = title;
+                
+                if (isMarkdown && content) {
+                    resultContent.innerHTML = content;
+                    resultContent.classList.add('markdown');
+                } else {
+                    resultContent.textContent = content || '';
+                    resultContent.classList.remove('markdown');
+                }
+                resultCard.style.display = 'block';
+                
+                // スクロールして結果を表示
+                resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function convertMarkdownToHTML(markdown) {
+            if (!markdown || typeof markdown !== 'string') {
+                return markdown;
+            }
+
+            let html = markdown;
+            
+            // 行に分割して処理
+            const lines = html.split('\n');
+            const processedLines = [];
+            let inCodeBlock = false;
+            let inList = false;
+            let listItems = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+                const trimmedLine = line.trim();
+                
+                // 空行をスキップ
+                if (trimmedLine === '') {
+                    // リストが終了した場合
+                    if (inList) {
+                        processedLines.push('<ul>' + listItems.join('') + '</ul>');
+                        listItems = [];
+                        inList = false;
+                    }
+                    processedLines.push('<br>');
+                    continue;
+                }
+                
+                // ヘッダーの処理
+                if (trimmedLine.startsWith('### ')) {
+                    if (inList) {
+                        processedLines.push('<ul>' + listItems.join('') + '</ul>');
+                        listItems = [];
+                        inList = false;
+                    }
+                    processedLines.push('<h3>' + trimmedLine.substring(4) + '</h3>');
+                } else if (trimmedLine.startsWith('## ')) {
+                    if (inList) {
+                        processedLines.push('<ul>' + listItems.join('') + '</ul>');
+                        listItems = [];
+                        inList = false;
+                    }
+                    processedLines.push('<h2>' + trimmedLine.substring(3) + '</h2>');
+                } else if (trimmedLine.startsWith('# ')) {
+                    if (inList) {
+                        processedLines.push('<ul>' + listItems.join('') + '</ul>');
+                        listItems = [];
+                        inList = false;
+                    }
+                    processedLines.push('<h1>' + trimmedLine.substring(2) + '</h1>');
+                }
+                // リストアイテムの処理
+                else if (trimmedLine.startsWith('- ')) {
+                    const listContent = trimmedLine.substring(2);
+                    // ボールドテキストを処理
+                    const processedContent = listContent.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                    listItems.push('<li>' + processedContent + '</li>');
+                    inList = true;
+                }
+                // 番号付きリストや詳細結果の処理
+                else if (/^\s*\d+\.\s/.test(trimmedLine)) {
+                    if (inList) {
+                        processedLines.push('<ul>' + listItems.join('') + '</ul>');
+                        listItems = [];
+                        inList = false;
+                    }
+                    const content = trimmedLine.replace(/^\s*\d+\.\s/, '');
+                    processedLines.push('<div class="numbered-item">' + content + '</div>');
+                }
+                // ボールドテキストから始まる行（クエリなど）
+                else if (trimmedLine.startsWith('**') && trimmedLine.includes('**:')) {
+                    if (inList) {
+                        processedLines.push('<ul>' + listItems.join('') + '</ul>');
+                        listItems = [];
+                        inList = false;
+                    }
+                    const processedContent = trimmedLine.replace(/\*\*([^*]+)\*\*/g, '<strong class="query-label">$1</strong>');
+                    processedLines.push('<div class="query-block">' + processedContent + '</div>');
+                }
+                // 通常のテキスト
+                else {
+                    if (inList) {
+                        processedLines.push('<ul>' + listItems.join('') + '</ul>');
+                        listItems = [];
+                        inList = false;
+                    }
+                    
+                    // ボールドテキストを処理
+                    let processedContent = trimmedLine.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                    
+                    // スコアや結果を見やすくフォーマット
+                    if (processedContent.includes('スコア:') || processedContent.includes('検索結果:') || processedContent.includes('正解ID:')) {
+                        processedLines.push('<div class="result-detail">' + processedContent + '</div>');
+                    } else {
+                        processedLines.push('<p>' + processedContent + '</p>');
+                    }
+                }
+            }
+            
+            // 最後にリストが残っている場合
+            if (inList) {
+                processedLines.push('<ul>' + listItems.join('') + '</ul>');
+            }
+            
+            return processedLines.join('\n');
+        }
+
+        function hideResult(isEval = false) {
+            if (isEval) {
+                evalResultCard.style.display = 'none';
+            } else {
+                resultCard.style.display = 'none';
+            }
+        }
+
+        // 初期化時にライブラリの読み込み状況を確認
+        window.addEventListener('load', async () => {
+            try {
+                // @gradio/clientライブラリが利用可能かチェック
+                const { Client } = await import("https://esm.sh/@gradio/client");
+                console.log('Gradio client loaded successfully');
+            } catch (error) {
+                console.warn('Gradio client loading failed:', error);
+                showResult('error', '初期化エラー', 'APIクライアントの読み込みに失敗しました。ネットワーク接続を確認してください。');
+            }
+        });
+    </script>
+</body>
+</html>
