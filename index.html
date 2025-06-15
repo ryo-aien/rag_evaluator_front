@@ -1046,7 +1046,7 @@
             const file = e.target.files[0];
             if (file) {
                 if (!isValidEvalFile(file)) {
-                    showResult('error', 'ファイル形式エラー', 'JSON/PDFファイルのみアップロード可能です。', true);
+                    showResult('error', 'ファイル形式エラー', 'JSONファイルのみアップロード可能です。', true);
                     e.target.value = '';
                     return;
                 }
@@ -1071,7 +1071,7 @@
             const file = e.dataTransfer.files[0];
             if (file) {
                 if (!isValidEvalFile(file)) {
-                    showResult('error', 'ファイル形式エラー', 'JSON/PDFファイルのみアップロード可能です。', true);
+                    showResult('error', 'ファイル形式エラー', 'JSONファイルのみアップロード可能です。', true);
                     return;
                 }
                 evalFileInput.files = e.dataTransfer.files;
@@ -1215,7 +1215,7 @@
                     console.log('Original content:', displayContent);
                     console.log('Converted HTML:', markdownHtml);
                     
-                    showResult('success', '評価完了(0〜1の範囲で、1に近いほど良い)', markdownHtml, true, true);
+                    showResult('success', '評価完了 (0〜1の範囲で、1に近いほど良い)', markdownHtml, true, true);
                     setLoading(false, true);
                     hideProgress(true);
                 }, 500);
